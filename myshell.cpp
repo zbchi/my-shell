@@ -25,6 +25,10 @@ void read_in(string &strp)
     getline(cin, strp);
 }
 
+// 分割参数|
+vector<vector<string>> splite_pipe(const string &strp){
+    vector<vector<args>>}
+
 // 分割成参数
 vector<string> splite_argv(const string &strp)
 {
