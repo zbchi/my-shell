@@ -12,7 +12,7 @@ using namespace std;
 char theLastPath[pathLen] = {0};
 char CurrentPath[pathLen];
 
-struct Commond
+struct Command
 {
     vector<string> args;
     string input;
@@ -61,16 +61,16 @@ vector<vector<string>> splite_pipe(const string &strp)
     return cmds;
 }
 
-void splite_command(const string &strp)
+vector<Command> splite_command(const string &strp)
 {
 
-    vector<Commond> commands;
+    vector<Command> commands;
     istringstream stream(strp);
     string command;
     while (getline(stream, command, '|'))
     {
         istringstream single_stream(command);
-        Commond cmd;
+        struct Command cmd;
         string arg;
         while (single_stream >> arg)
         {
@@ -95,6 +95,7 @@ void splite_command(const string &strp)
         }
         commands.push_back(cmd);
     }
+    return commands;
 }
 
 // cd
@@ -111,12 +112,13 @@ void cd(vector<string> &args, char *theLastPath)
     }
     else if (strcmp(args[1].c_str(), "-") == 0)
     {
+
         if (theLastPath[0] == '\0')
         {
             getcwd(theLastPath, pathLen);
-            cout << theLastPath << endl;
             // cout << "________________" << endl;
         }
+        cout << theLastPath << endl;
         if (chdir(theLastPath) != 0)
         {
             perror("cd");
@@ -142,7 +144,7 @@ vector<char *> transfer(vector<string> &cmd)
     return args;
 }
 
-void cmd_pipe(vector<Commond> &commands)
+void cmd_pipe(vector<Command> &commands)
 {
 
     int num = commands.size();
@@ -181,10 +183,11 @@ void cmd_pipe(vector<Commond> &commands)
         }
         else if (!commands[num - 1].output.empty())
         {
+            int fD;
             if (commands[num - 1].isApend)
-                int fD = open(commands[num - 1].output.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0644);
+                fD = open(commands[num - 1].output.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0644);
             else
-                int fD = open(commands[num - 1].output.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+                fD = open(commands[num - 1].output.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
             dup2(fD, STDOUT_FILENO);
             close(fD);
         }
@@ -213,6 +216,7 @@ void cmd_pipe(vector<Commond> &commands)
 
 int main(int argc, char *argv[])
 {
+    getcwd(CurrentPath, pathLen);
 
     while (1)
     {
@@ -221,19 +225,23 @@ int main(int argc, char *argv[])
 
         // 调取命令行参数
         read_in(str);
-        vector<vector<string>> args = splite_pipe(str);
+        vector<Command> commands = splite_command(str);
 
         // cout << args[1] << endl;
-
-        if (args[0][0] == "cd")
+        if (commands[0].args[0] == "cd")
         {
-            cd(args[0], theLastPath);
+            cd(commands[0].args, theLastPath);
             strcpy(theLastPath, CurrentPath);
             getcwd(CurrentPath, pathLen);
-
+            // cout << "currentPaTH:" << CurrentPath << endl;
+            // cout << "theLastPath:" << theLastPath << endl;
             continue;
         }
-        cmd_pipe(args);
+        else if (commands[0].args[0] == "exit")
+        {
+            exit(0);
+        }
+        cmd_pipe(commands);
     }
     return 0;
 }
