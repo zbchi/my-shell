@@ -11,6 +11,14 @@ using namespace std;
 char theLastPath[pathLen] = {0};
 char CurrentPath[pathLen];
 
+struct Commond
+{
+    vector<string> args;
+    string input;
+    string output;
+    bool isApend = false;
+};
+
 // 系统调用错误
 void sys_error(const char *systemcall)
 {
@@ -52,6 +60,42 @@ vector<vector<string>> splite_pipe(const string &strp)
     return cmds;
 }
 
+void splite_command(const string &strp)
+{
+
+    vector<Commond> commands;
+    istringstream stream(strp);
+    string command;
+    while (getline(stream, command, '|'))
+    {
+        istringstream single_stream(commond);
+        Commond cmd;
+        string arg;
+        while (single_stream >> arg)
+        {
+            if (arg == ">")
+            {
+                single_stream >> cmd.output;
+            }
+            else if (arg == "<")
+            {
+                single_stream >> cmd.input;
+            }
+            else if (arg == ">>")
+            {
+                single_stream >> cmd.output;
+                cmd.isApend = true;
+            }
+            else
+            {
+
+                cmd.args.push_back(arg);
+            }
+        }
+        commands.push_back(cmd);
+    }
+}
+
 // cd
 void cd(vector<string> &args, char *theLastPath)
 {
@@ -86,6 +130,70 @@ void cd(vector<string> &args, char *theLastPath)
     }
 }
 
+vector<char *> transfer(vector<string> &cmd)
+{
+    vector<char *> args;
+    for (auto &arg : cmd)
+    {
+        args.push_back(&arg[0]);
+    }
+    args.push_back(nullptr);
+    return args;
+}
+
+void cmd_pipe(vector<Commond> &commonds)
+{
+
+    int num = commonds.size();
+    vector<vector<int>> fd(num, vector<int>(2));
+    // 建立管道
+    for (int i = 0; i < num - 1; i++)
+    {
+        if (pipe(fd[i].data()) == -1)
+            sys_error("pipe");
+    }
+    int i = 0;
+    pid_t pid;
+    // 创建子进程
+    for (i = 0; i < num; i++)
+    {
+        pid = fork();
+        if (pid == 0)
+            break;
+    }
+
+    if (pid == 0)
+    {
+        if (i > 0)
+        {
+            dup2(fd[i - 1][0], STDIN_FILENO);
+        }
+        if (i < num - 1)
+        {
+            dup2(fd[i][1], STDOUT_FILENO);
+        }
+        for (int j = 0; j < num - 1; j++)
+        {
+            close(fd[j][1]);
+            close(fd[j][0]);
+        }
+        vector<char *> char_args = transfer(commonds[i].args);
+        char_args.push_back(nullptr);
+        execvp(char_args[0], char_args.data());
+        exit(0);
+    }
+    else // 关闭父进程的所有通道i
+    {
+        for (int j = 0; j < num - 1; j++)
+        {
+            close(fd[j][1]);
+            close(fd[j][0]);
+        }
+        for (int j = 0; j < num; j++)
+            wait(nullptr);
+    }
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -102,13 +210,13 @@ int main(int argc, char *argv[])
 
         if (args[0][0] == "cd")
         {
-            cout << "m" << endl;
             cd(args[0], theLastPath);
             strcpy(theLastPath, CurrentPath);
             getcwd(CurrentPath, pathLen);
 
             continue;
         }
+        cmd_pipe(args);
     }
     return 0;
 }
