@@ -25,11 +25,7 @@ void read_in(string &strp)
     getline(cin, strp);
 }
 
-// 分割参数|
-vector<vector<string>> splite_pipe(const string &strp){
-    vector<vector<args>>}
-
-// 分割成参数
+// 按空格分割成参数
 vector<string> splite_argv(const string &strp)
 {
     vector<string> args;
@@ -41,6 +37,19 @@ vector<string> splite_argv(const string &strp)
     }
 
     return args;
+}
+
+// 分割参数|
+vector<vector<string>> splite_pipe(const string &strp)
+{
+    vector<vector<string>> cmds;
+    istringstream stream(strp);
+    string cmd;
+    while (getline(stream, cmd, '|'))
+    {
+        cmds.push_back(splite_argv(cmd));
+    }
+    return cmds;
 }
 
 // cd
@@ -87,38 +96,18 @@ int main(int argc, char *argv[])
 
         // 调取命令行参数
         read_in(str);
-        vector<string> args = splite_argv(str);
+        vector<vector<string>> args = splite_pipe(str);
 
         // cout << args[1] << endl;
 
-        if (args[0] == "cd")
+        if (args[0][0] == "cd")
         {
-            cd(args, theLastPath);
+            cout << "m" << endl;
+            cd(args[0], theLastPath);
             strcpy(theLastPath, CurrentPath);
             getcwd(CurrentPath, pathLen);
 
             continue;
-        }
-
-        pid_t pid = fork();
-        if (pid < 0)
-            sys_error("fork");
-
-        if (pid == 0)
-        {
-            vector<char *> char_args;
-            for (auto &arg : args)
-            {
-                char_args.push_back(&arg[0]);
-            }
-            // 给vector<char*>末尾加上NULL
-            char_args.push_back(nullptr);
-            if ((execvp(char_args[0], char_args.data())) == -1)
-                sys_error("execvp");
-        }
-        if (pid > 0)
-        {
-            wait(nullptr);
         }
     }
     return 0;
