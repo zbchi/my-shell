@@ -4,6 +4,7 @@
 #include <sstream>
 #include <wait.h>
 #include <cstring>
+#include <fcntl.h>
 using namespace std;
 
 #define pathLen 4096
@@ -68,7 +69,7 @@ void splite_command(const string &strp)
     string command;
     while (getline(stream, command, '|'))
     {
-        istringstream single_stream(commond);
+        istringstream single_stream(command);
         Commond cmd;
         string arg;
         while (single_stream >> arg)
@@ -141,10 +142,10 @@ vector<char *> transfer(vector<string> &cmd)
     return args;
 }
 
-void cmd_pipe(vector<Commond> &commonds)
+void cmd_pipe(vector<Commond> &commands)
 {
 
-    int num = commonds.size();
+    int num = commands.size();
     vector<vector<int>> fd(num, vector<int>(2));
     // 建立管道
     for (int i = 0; i < num - 1; i++)
@@ -168,16 +169,32 @@ void cmd_pipe(vector<Commond> &commonds)
         {
             dup2(fd[i - 1][0], STDIN_FILENO);
         }
+        else if (!commands[0].input.empty())
+        {
+            int fD = open(commands[0].input.c_str(), O_RDONLY);
+            dup2(fD, STDIN_FILENO);
+            close(fD);
+        }
         if (i < num - 1)
         {
             dup2(fd[i][1], STDOUT_FILENO);
         }
+        else if (!commands[num - 1].output.empty())
+        {
+            if (commands[num - 1].isApend)
+                int fD = open(commands[num - 1].output.c_str(), O_WRONLY | O_CREAT | O_APPEND, 0644);
+            else
+                int fD = open(commands[num - 1].output.c_str(), O_WRONLY | O_CREAT | O_TRUNC, 0644);
+            dup2(fD, STDOUT_FILENO);
+            close(fD);
+        }
+
         for (int j = 0; j < num - 1; j++)
         {
             close(fd[j][1]);
             close(fd[j][0]);
         }
-        vector<char *> char_args = transfer(commonds[i].args);
+        vector<char *> char_args = transfer(commands[i].args);
         char_args.push_back(nullptr);
         execvp(char_args[0], char_args.data());
         exit(0);
