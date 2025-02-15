@@ -5,6 +5,7 @@
 #include <wait.h>
 #include <cstring>
 #include <fcntl.h>
+#include <signal.h>
 using namespace std;
 
 #define pathLen 4096
@@ -216,6 +217,12 @@ void cmd_pipe(vector<Command> &commands)
 
 int main(int argc, char *argv[])
 {
+    sigset_t set, old;
+    sigemptyset(&set);
+    sigaddset(&set, SIGINT);
+
+    sigprocmask(SIG_BLOCK, &set, &old);
+
     getcwd(CurrentPath, pathLen);
 
     while (1)
