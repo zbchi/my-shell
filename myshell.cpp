@@ -227,7 +227,7 @@ int main(int argc, char *argv[])
 
     while (1)
     {
-        cerr << "myshell ➜";
+        cerr << CurrentPath << "➜";
         string str;
 
         // 调取命令行参数
@@ -243,6 +243,16 @@ int main(int argc, char *argv[])
             // cout << "currentPaTH:" << CurrentPath << endl;
             // cout << "theLastPath:" << theLastPath << endl;
             continue;
+        }
+        else if (commands[0].args[0].rfind("./", 0) == 0)
+        {
+            int pid = fork();
+            if (pid == 0)
+            {
+                vector<char *> char_args = transfer(commands[0].args);
+                char_args.push_back(nullptr);
+                execv(char_args[0], char_args.data());
+            }
         }
         else if (commands[0].args[0] == "exit")
         {
