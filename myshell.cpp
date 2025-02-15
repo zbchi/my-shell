@@ -145,10 +145,9 @@ vector<char *> transfer(vector<string> &cmd)
     return args;
 }
 
-void cmd_pipe(vector<Command> &commands)
+void cmd_pipe(vector<Command> &commands, int &num, bool &houtai)
 {
 
-    int num = commands.size();
     vector<vector<int>> fd(num, vector<int>(2));
     // 建立管道
     for (int i = 0; i < num - 1; i++)
@@ -200,23 +199,30 @@ void cmd_pipe(vector<Command> &commands)
         }
         vector<char *> char_args = transfer(commands[i].args);
         char_args.push_back(nullptr);
-        execvp(char_args[0], char_args.data());
+        if (execvp(char_args[0], char_args.data()) == -1)
+            sys_error("execvp");
         exit(0);
     }
-    else // 关闭父进程的所有通道i
+    else if (pid > 0) // 关闭父进程的所有通道i
     {
         for (int j = 0; j < num - 1; j++)
         {
             close(fd[j][1]);
             close(fd[j][0]);
         }
+        if (houtai)
+
+            return;
         for (int j = 0; j < num; j++)
             wait(nullptr);
     }
+    else
+        sys_error("fork");
 }
 
 int main(int argc, char *argv[])
 {
+
     sigset_t set, old;
     sigemptyset(&set);
     sigaddset(&set, SIGINT);
@@ -229,12 +235,20 @@ int main(int argc, char *argv[])
     {
         cerr << CurrentPath << "➜";
         string str;
-
+        bool houtai = false;
         // 调取命令行参数
         read_in(str);
         vector<Command> commands = splite_command(str);
-
+        int num = commands.size();
         // cout << args[1] << endl;
+        if (strcmp(commands[num - 1].args[commands[num - 1].args.size() - 1].c_str(), "&") == 0)
+        {
+            // cout << "-------------------" << endl;
+            houtai = true;
+
+            commands[num - 1].args.pop_back();
+        }
+
         if (commands[0].args[0] == "cd")
         {
             cd(commands[0].args, theLastPath);
@@ -251,14 +265,17 @@ int main(int argc, char *argv[])
             {
                 vector<char *> char_args = transfer(commands[0].args);
                 char_args.push_back(nullptr);
-                execv(char_args[0], char_args.data());
+                if (execv(char_args[0], char_args.data()) == -1)
+                    sys_error("execv");
             }
+            else if (pid < 0)
+                sys_error("fork");
         }
         else if (commands[0].args[0] == "exit")
         {
             exit(0);
         }
-        cmd_pipe(commands);
+        cmd_pipe(commands, num, houtai);
     }
     return 0;
 }
