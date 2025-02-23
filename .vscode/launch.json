@@ -9,7 +9,7 @@
       "stopAtEntry": false,
       "externalConsole": false,
       "cwd": "/home/zb/my-shell",
-      "program": "/home/zb/my-shell/build/Debug/outDebug",
+      "program": "/home/zb/my-shell/out",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [

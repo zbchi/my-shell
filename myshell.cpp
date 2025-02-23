@@ -111,7 +111,7 @@ void cd(vector<string> &args, char *theLastPath)
             return;
         }
     }
-    else if (strcmp(args[1].c_str(), "-") == 0)
+    else if (args.size() < 2 || strcmp(args[1].c_str(), "-") == 0)
     {
 
         if (theLastPath[0] == '\0')
@@ -233,23 +233,29 @@ int main(int argc, char *argv[])
 
     while (1)
     {
-        cerr << CurrentPath << "➜";
+        cerr << CurrentPath << "➜➜➜➜➜";
         string str;
         bool houtai = false;
         // 调取命令行参数
         read_in(str);
         vector<Command> commands = splite_command(str);
-        int num = commands.size();
+        int num2 = commands.size();
+        if (num2 == 0)
+            continue;
+        int num = commands[0].args.size();
+        if (num == 0)
+            continue;
         // cout << args[1] << endl;
-        if (strcmp(commands[num - 1].args[commands[num - 1].args.size() - 1].c_str(), "&") == 0)
+        cout << num << endl;
+        if (num != 0 && strcmp(commands[num2 - 1].args[commands[num2 - 1].args.size() - 1].c_str(), "&") == 0)
         {
             // cout << "-------------------" << endl;
             houtai = true;
 
-            commands[num - 1].args.pop_back();
+            commands[num2 - 1].args.pop_back();
         }
 
-        if (commands[0].args[0] == "cd")
+        if (num != 0 && commands[0].args[0] == "cd")
         {
             cd(commands[0].args, theLastPath);
             strcpy(theLastPath, CurrentPath);
@@ -258,7 +264,7 @@ int main(int argc, char *argv[])
             // cout << "theLastPath:" << theLastPath << endl;
             continue;
         }
-        else if (commands[0].args[0].rfind("./", 0) == 0)
+        else if (num != 0 && commands[0].args[0].rfind("./", 0) == 0)
         {
             int pid = fork();
             if (pid == 0)
@@ -271,11 +277,12 @@ int main(int argc, char *argv[])
             else if (pid < 0)
                 sys_error("fork");
         }
-        else if (commands[0].args[0] == "exit")
+        else if (num != 0 && commands[0].args[0] == "exit")
         {
             exit(0);
         }
-        cmd_pipe(commands, num, houtai);
+
+        cmd_pipe(commands, num2, houtai);
     }
     return 0;
 }
