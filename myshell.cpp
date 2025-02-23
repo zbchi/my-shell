@@ -246,7 +246,6 @@ int main(int argc, char *argv[])
         if (num == 0)
             continue;
         // cout << args[1] << endl;
-        cout << num << endl;
         if (num != 0 && strcmp(commands[num2 - 1].args[commands[num2 - 1].args.size() - 1].c_str(), "&") == 0)
         {
             // cout << "-------------------" << endl;
