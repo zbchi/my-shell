@@ -32,7 +32,8 @@ void sys_error(const char *systemcall)
 void read_in(string &strp)
 {
     string str;
-    getline(cin, strp);
+    if (!(getline(cin, strp)))
+        exit(1);
 }
 
 // 按空格分割成参数
