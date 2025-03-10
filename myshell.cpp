@@ -6,6 +6,8 @@
 #include <cstring>
 #include <fcntl.h>
 #include <signal.h>
+#include <readline/readline.h>
+#include <readline/history.h>
 using namespace std;
 
 #define pathLen 4096
@@ -32,8 +34,14 @@ void sys_error(const char *systemcall)
 void read_in(string &strp)
 {
     string str;
-    if (!(getline(cin, strp)))
+    /* if (!(getline(cin, strp)))
+         exit(1);*/
+    cerr << "\x1b[1;34m" << CurrentPath << "\x1b[0m";
+    char *input = readline("\x1b[1;34m➜➜➜➜➜\x1b[0m");
+    if (!input)
         exit(1);
+    strp = input;
+    free(input);
 }
 
 // 按空格分割成参数
@@ -234,7 +242,7 @@ int main(int argc, char *argv[])
 
     while (1)
     {
-        cerr << CurrentPath << "➜➜➜➜➜";
+        bool exe = true;
         string str;
         bool houtai = false;
         // 调取命令行参数
@@ -266,6 +274,7 @@ int main(int argc, char *argv[])
         }
         else if (num != 0 && commands[0].args[0].rfind("./", 0) == 0)
         {
+            exe = false;
             int pid = fork();
             if (pid == 0)
             {
@@ -276,13 +285,16 @@ int main(int argc, char *argv[])
             }
             else if (pid < 0)
                 sys_error("fork");
+            else
+                waitpid(pid, NULL, 0);
         }
         else if (num != 0 && commands[0].args[0] == "exit")
         {
+            // printf("recieve exit\n");
             exit(0);
         }
-
-        cmd_pipe(commands, num2, houtai);
+        if (exe)
+            cmd_pipe(commands, num2, houtai);
     }
     return 0;
 }
