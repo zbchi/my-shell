@@ -23,6 +23,26 @@ struct Command
     bool isApend = false;
 };
 
+void catch_child(int signo)
+{
+    pid_t pid;
+    while (1)
+    {
+        pid = waitpid(-1, NULL, WNOHANG);
+        if (pid <= 0)
+            break;
+    }
+}
+
+void set_sigchld()
+{
+    struct sigaction act;
+    sigemptyset(&act.sa_mask);
+    act.sa_flags = 0;
+    act.sa_handler = catch_child;
+    sigaction(SIGCHLD, &act, NULL);
+}
+
 // 系统调用错误
 void sys_error(const char *systemcall)
 {
@@ -165,16 +185,16 @@ void cmd_pipe(vector<Command> &commands, int &num, bool &houtai)
             sys_error("pipe");
     }
     int i = 0;
-    pid_t pid;
+    vector<pid_t> pid;
     // 创建子进程
     for (i = 0; i < num; i++)
     {
-        pid = fork();
-        if (pid == 0)
+        pid.push_back(fork());
+        if (pid[i] == 0)
             break;
     }
 
-    if (pid == 0)
+    if (pid[i] == 0)
     {
         if (i > 0)
         {
@@ -212,7 +232,7 @@ void cmd_pipe(vector<Command> &commands, int &num, bool &houtai)
             sys_error("execvp");
         exit(0);
     }
-    else if (pid > 0) // 关闭父进程的所有通道i
+    else if (pid[i] > 0) // 关闭父进程的所有通道i
     {
         for (int j = 0; j < num - 1; j++)
         {
@@ -220,10 +240,12 @@ void cmd_pipe(vector<Command> &commands, int &num, bool &houtai)
             close(fd[j][0]);
         }
         if (houtai)
-
+        {
+            // cout << "-------------------------" << endl;
             return;
+        }
         for (int j = 0; j < num; j++)
-            wait(nullptr);
+            waitpid(pid[j], NULL, 0);
     }
     else
         sys_error("fork");
@@ -233,6 +255,8 @@ int main(int argc, char *argv[])
 {
 
     sigset_t set, old;
+    set_sigchld();
+
     sigemptyset(&set);
     sigaddset(&set, SIGINT);
 
